@@ -1,0 +1,5 @@
+langchain==0.3.18
+langchain-core==0.3.35
+langchain-openai==0.2.2
+langgraph==0.2.71
+pydantic==2.10.6

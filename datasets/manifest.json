@@ -1,0 +1,20 @@
+[
+  {
+    "file": "master_311.jsonl",
+    "count": 311,
+    "sha256": "ca58e11db649233682623212d03172ee171c1080894f8b548aefc1e41ead4f9b",
+    "role": "sealed master; no runtime policy"
+  },
+  {
+    "file": "hard_55.jsonl",
+    "count": 55,
+    "sha256": "cc67b3d7263afb472b5c63b83ee7ef5cbacead0f024e4f088695f05bab7ad44c",
+    "role": "runtime-ready diagnostic input; use --split all"
+  },
+  {
+    "file": "holdout_48.jsonl",
+    "count": 48,
+    "sha256": "af1126daebd36a32f1376e8b44c12e5126226df9fc6d59df4ddb2410db5e4377",
+    "role": "runtime-ready new-source holdout"
+  }
+]
