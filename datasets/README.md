@@ -18,4 +18,4 @@ Review eligibility in the supplied files is 311/311 for the master, 35/55 for th
 
 The source metadata records review status; this release does not perform a new human annotation or certify the existing labels. The environment models authorization, intent revisions, asset/amount constraints and dynamic events under synthetic rules. Performance here is not evidence of actual bank integration, real fund settlement or production safety.
 
-Run `python verify_release.py` to verify checksums, counts, identifiers and master/holdout separation. Data redistribution terms are described in the root `NOTICE.md`; no third-party license is silently applied to the data.
+Checksums are listed in `manifest.json`. Attribution and redistribution terms are described in the root [README.md](../README.md#attribution-and-licensing); no third-party license is silently applied to the data.
