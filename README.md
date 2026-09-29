@@ -17,11 +17,9 @@ TAPay/
 ├── datasets/                 # 311 master, 55 difficult, 48 holdout cases
 ├── model/                    # Core agents, simulation, orchestration, scoring
 ├── config/                   # Runtime settings and credential-free example
-├── tests/                    # Offline release and core mechanism checks
 ├── main.py                   # Run TAPay or a component ablation
 ├── verify_release.py         # Verify packaged datasets
 ├── requirements.txt
-├── requirements-dev.txt
 ├── README.md
 ├── NOTICE.md
 └── LICENSE-TalkHier.txt
@@ -62,16 +60,11 @@ Variants: `full` (default), `backbone`, `without-intent`, `without-alignment`, `
 
 Runs produce per-case predictions and trajectories, aggregate metrics, and frozen run identities with source/config hashes. Different model providers, versions and budgets can change outcomes. This minimal release does not bundle historical model outputs or claim bitwise reproduction of reported paper metrics.
 
-## Data and tests
+## Data
 
 The runtime-ready diagnostic inputs retain mixed review status: 35/55 and 32/48 cases are marked formally eligible. Do not describe these files as wholly human-confirmed; `--require-reviewed` intentionally rejects the full mixed-status inputs.
 
 See [datasets/README.md](datasets/README.md) for provenance, splits, visibility boundaries and limitations. The 311/55/48 collections are not three mutually independent samples. In particular, use `--split all` for all 55 diagnostic cases.
-
-```bash
-python -m pip install -r requirements-dev.txt
-python -m pytest -q
-```
 
 ## Attribution and licensing
 
