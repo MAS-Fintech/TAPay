@@ -36,16 +36,6 @@ ZONES = ("AUTO", "OBSERVE", "FORBIDDEN")
 
 
 class H3DecisionPolicy:
-    #: Optional sub-features (all OFF unless named in ``features``):
-    #:   slow_loop        — boundary-pressure accumulator that escalates to a
-    #:                      BLOCK-leaning directive once pressure crosses a
-    #:                      configurable threshold;
-    #:   feedback_replan  — on_simulation_failure hook: category-keyed
-    #:                      replan directive + verbatim-retry rejection;
-    #:   clarify_policy   — value-of-information question ordering with a
-    #:                      hard clarification budget (then BLOCK, not RC).
-    FEATURES = ("slow_loop", "feedback_replan", "clarify_policy")
-
     def __init__(
         self,
         risk_threshold: float = 0.5,
@@ -53,73 +43,21 @@ class H3DecisionPolicy:
         risk_enter: float = 0.6,
         risk_exit: float = 0.4,
         min_hold_events: int = 2,
-        boundary: Optional[Dict[str, Any]] = None,
-        features: Optional[set] = None,
-        pressure_threshold: int = 3,
-        clarify_budget: int = 2,
     ):
         # Backward compatible: a legacy single threshold maps onto the
         # FORBIDDEN-entry threshold when risk_enter is left at its default.
         self.risk_threshold = risk_threshold
         if risk_enter == 0.6 and risk_threshold != 0.5:
             risk_enter = risk_threshold
-        # Optional learned boundary artifact (data/h3_boundary.json): the
-        # FORBIDDEN-entry threshold becomes the declared threshold plus the
-        # learned offset, and the quote-expiry stance follows the learned
-        # policy. Without an artifact the policy behaves exactly as before.
-        self.boundary = boundary or None
-        if self.boundary:
-            # v3 artifacts may recommend "no_preemption" (offset None): keep
-            # the declared threshold and never preempt. Older artifacts carry
-            # a numeric offset.
-            offset = self.boundary.get("risk_enter_offset")
-            if offset is not None:
-                risk_enter = risk_enter + float(offset)
-            # quote_policy is opt-in: only an artifact that explicitly sets
-            # it changes the stance; v3 artifacts omit it entirely.
-            self.quote_policy = self.boundary.get("quote_policy", "re-verify")
-        else:
-            # No artifact: keep the pre-bandit behavior exactly (re-verify on
-            # stale quote, no hard quote gate). "forbid" is artifact-only.
-            self.quote_policy = "re-verify"
         self.risk_enter = risk_enter
         self.risk_exit = risk_exit
         self.min_hold_events = min_hold_events
-        # Sub-features (default OFF; orthogonal to the boundary artifact).
-        self.features = set(features or ())
-        unknown = self.features - set(self.FEATURES)
-        if unknown:
-            raise ValueError(f"unknown H3 features: {sorted(unknown)}")
-        self.pressure_threshold = int(pressure_threshold)
-        self.clarify_budget = int(clarify_budget)
         self.conversation = ""
         self.last_adjustment_reason: str = ""
         self.directives: List[str] = []
         self.zone = "AUTO"
         self.event_count = 0
         self.entered_at_event_count = 0
-        # RQ3 instrumentation: per-event zone-machine audit trail.  Each
-        # entry records one environment-event evaluation: the risk value,
-        # the zone before/after, and whether the machine transitioned, was
-        # held by hysteresis / minimum-hold, or stayed unchanged.
-        self.zone_log: List[Dict[str, Any]] = []
-        # slow_loop state
-        self.pressure = 0
-        self.escalation_active = False
-        # feedback_replan state
-        self._seen_failure_receipts: List[str] = []
-        self._rejected_proposals: List[Dict[str, Any]] = []
-        # clarify_policy state
-        self._clarify_remaining = self.clarify_budget
-
-    @classmethod
-    def from_boundary_file(cls, path: str, **kwargs) -> "H3DecisionPolicy":
-        """Build a policy whose boundary comes from a learned artifact JSON."""
-        import json
-
-        with open(path, encoding="utf-8") as f:
-            boundary = json.load(f)
-        return cls(boundary=boundary, **kwargs)
 
     def configure(self, **case_context) -> None:
         self.conversation = case_context.get("visible_conversation", "")
@@ -128,30 +66,6 @@ class H3DecisionPolicy:
         self.zone = "AUTO"
         self.event_count = 0
         self.entered_at_event_count = 0
-        self.zone_log = []
-        self.pressure = 0
-        self.escalation_active = False
-        self._seen_failure_receipts = []
-        self._rejected_proposals = []
-        self._clarify_remaining = self.clarify_budget
-
-    # ---------------------------------------------------------- slow_loop
-    def _pressure_event(self, delta: int) -> Optional[str]:
-        """Accumulate boundary pressure (slow_loop feature); emit the
-        escalation directive once the threshold is crossed, then reset."""
-        if "slow_loop" not in self.features:
-            return None
-        self.pressure = max(0, self.pressure + delta)
-        if self.pressure >= self.pressure_threshold:
-            self.pressure = 0
-            self.escalation_active = True
-            return (
-                "boundary pressure has been accumulating over recent events: "
-                "under the current evidence environment execution is NOT "
-                "permitted — the correct terminal is BLOCK (or an explicit "
-                "request for human confirmation), not EXECUTE."
-            )
-        return None
 
     # ---------------------------------------------------------- risk zones
     @staticmethod
@@ -171,17 +85,9 @@ class H3DecisionPolicy:
         self.event_count += 1
         risk = (current_facts or {}).get("risk_score")
         target = self._zone_of(risk, self.risk_enter, self.risk_exit)
-        old = self.zone
-        entry: Dict[str, Any] = {
-            "event_count": self.event_count,
-            "risk_score": risk,
-            "zone_before": old,
-            "target_zone": target,
-            "chain_exhausted": chain_exhausted,
-        }
-        if target is None or target == old:
-            self.zone_log.append({**entry, "decision": "unchanged"})
+        if target is None or target == self.zone:
             return None
+        old = self.zone
         if old == "FORBIDDEN" and target != "FORBIDDEN":
             # hysteresis + minimum hold: exit only at/below risk_exit and
             # after min_hold_events events since entry.  When the event
@@ -191,19 +97,12 @@ class H3DecisionPolicy:
             # final event is the recovery would deadlock in FORBIDDEN).
             held = self.event_count - self.entered_at_event_count
             if risk is not None and risk > self.risk_exit:
-                self.zone_log.append({**entry, "decision": "held",
-                                      "reason": "hysteresis",
-                                      "held_events": held})
                 return None
             if held < self.min_hold_events and not chain_exhausted:
-                self.zone_log.append({**entry, "decision": "held",
-                                      "reason": "min_hold",
-                                      "held_events": held})
                 return None
         self.zone = target
         if target == "FORBIDDEN":
             self.entered_at_event_count = self.event_count
-        self.zone_log.append({**entry, "decision": "transitioned"})
         return f"{old}->{target}"
 
     # ---------------------------------------------------------- fast loop
@@ -248,147 +147,19 @@ class H3DecisionPolicy:
                     "caution and re-verify the proposal against the fresh state "
                     "before finalizing."
                 )
-        quote_expired = bool(
-            (previous_facts or {}).get("quote_valid")
-            and not (current_facts or {}).get("quote_valid", True)
-        )
-        if quote_expired:
-            if self.quote_policy == "forbid":
-                parts.append(
-                    "quote expired: execution is FORBIDDEN on the stale quote; "
-                    "do not finalize EXECUTE until a fresh quote is available — "
-                    "the correct terminal while the quote stays invalid is BLOCK."
-                )
-            else:
-                parts.append(
-                    "quote expired: re-query the current state and re-simulate the "
-                    "proposal before any execution; receipts bound to earlier state "
-                    "versions are stale."
-                )
-        # slow_loop: pressure bookkeeping rides the same event stream.
-        if "slow_loop" in self.features:
-            delta = -1  # calm event (or no transition): decay
-            if transition is not None and self.zone == "FORBIDDEN":
-                delta = +2
-            elif transition is not None and self.zone == "OBSERVE":
-                delta = +1
-            if quote_expired:
-                delta += 1
-            escalated = self._pressure_event(delta)
-            if escalated:
-                parts.append(escalated)
+        if (previous_facts or {}).get("quote_valid") and not (current_facts or {}).get(
+            "quote_valid", True
+        ):
+            parts.append(
+                "quote expired: re-query the current state and re-simulate the "
+                "proposal before any execution; receipts bound to earlier state "
+                "versions are stale."
+            )
         if not parts:
             return None
         directive = "H3 dynamic boundary directive: " + " ".join(parts)
         self.directives.append(directive)
         return directive
-
-    # ---------------------------------------------------- feedback_replan
-    #: failure_reason category -> replan guidance (decision table, keyed on
-    #: the simulator's failure_reasons strings, not on case identities).
-    _REPLAN_TABLE = (
-        ("exceeds balance",
-         "balance insufficient: retry with a reduced amount, or BLOCK"),
-        ("exceeds max_amount",
-         "amount above the per-transaction cap: reduce the amount below the "
-         "cap and retry, or BLOCK"),
-        ("quote is not valid",
-         "quote invalid: obtain a fresh quote (re-query the current state) "
-         "before simulating again"),
-        ("no valid approval",
-         "no valid approval/authorization: BLOCK"),
-        ("exceeds max_slippage",
-         "slippage above the allowed maximum: retry with a lower slippage "
-         "parameter"),
-        ("exceeds pool_liquidity",
-         "pool liquidity insufficient: retry with a reduced amount, or BLOCK"),
-    )
-
-    def on_simulation_failure(self, receipt: Dict[str, Any]) -> Optional[str]:
-        """feedback_replan hook: the runner calls this once per NEW rejected
-        receipt (idempotent per receipt_id). Emits a category-keyed replan
-        directive and records the proposal so decide() can reject a verbatim
-        retry (same action + same canonical parameters)."""
-        if "feedback_replan" not in self.features:
-            return None
-        if not isinstance(receipt, dict):
-            return None
-        receipt_id = receipt.get("receipt_id")
-        if receipt_id and receipt_id in self._seen_failure_receipts:
-            return None
-        if receipt_id:
-            self._seen_failure_receipts.append(receipt_id)
-        reasons = receipt.get("failure_reasons") or []
-        guidance = None
-        for needle, text in self._REPLAN_TABLE:
-            if any(needle in r for r in reasons):
-                guidance = text
-                break
-        if guidance is None:
-            guidance = "unclassified simulation failure: BLOCK or clarify"
-        self._rejected_proposals.append({
-            "action_id": receipt.get("action_id"),
-            "parameters": receipt.get("parameters") or {},
-        })
-        # slow_loop: a rejected simulation is boundary pressure too.
-        escalated = self._pressure_event(+1)
-        parts = [
-            f"simulation rejected ({'; '.join(reasons) or 'unknown reason'}): "
-            f"{guidance}. Do NOT retry the identical proposal unchanged."
-        ]
-        if escalated:
-            parts.append(escalated)
-        directive = "H3 replan directive: " + " ".join(parts)
-        self.directives.append(directive)
-        return directive
-
-    # ----------------------------------------------------- clarify_policy
-    #: Fields whose answer can flip the feasibility simulation directly ask
-    #: first; timing/preference fields ask later.
-    _VOI_PRIORITY = ("operation", "asset", "amount", "sku", "quantity",
-                     "target_asset", "payment_method", "max_total_usd",
-                     "slippage", "deadline_at", "time_window_seconds")
-
-    def clarify_directive(self, intent: Any) -> Optional[str]:
-        """clarify_policy: value-of-information question ordering + budget.
-
-        Returns a directive when the current intent carries multiple
-        unresolved required fields; None when the feature is off, the intent
-        is None, or fewer than two fields are unresolved. The budget counts
-        clarification rounds: exhausted -> BLOCK, not another RC."""
-        if "clarify_policy" not in self.features or intent is None:
-            return None
-        missing = list(getattr(intent, "missing_required", None) or [])
-        pending = list(getattr(intent, "pending_resolution", None) or [])
-        unresolved = missing + [f for f in pending if f not in missing]
-        if len(unresolved) < 2:
-            return None
-        ordered = sorted(
-            unresolved,
-            key=lambda f: (self._VOI_PRIORITY.index(f)
-                           if f in self._VOI_PRIORITY
-                           else len(self._VOI_PRIORITY)),
-        )
-        feasibility_first = [f for f in ordered
-                             if f in self._VOI_PRIORITY[:7]]
-        directive = (
-            "H3 clarification policy: multiple required fields are unresolved "
-            f"({', '.join(unresolved)}). Ask in value-of-information order — "
-            f"feasibility-deciding fields first ({', '.join(ordered)}); "
-            f"the answer to each of {', '.join(feasibility_first) or 'them'} "
-            "can flip the feasibility conclusion. Clarification budget: "
-            f"{self._clarify_remaining} question(s) left; if the proposal is "
-            "still infeasible when the budget is exhausted the correct "
-            "terminal is BLOCK, not another REQUEST_CLARIFICATION."
-        )
-        self.directives.append(directive)
-        return directive
-
-    def note_clarification_round(self) -> None:
-        """clarify_policy: the runner calls this when the team finalizes a
-        REQUEST_CLARIFICATION — one budget unit is spent."""
-        if "clarify_policy" in self.features and self._clarify_remaining > 0:
-            self._clarify_remaining -= 1
 
     # ---------------------------------------------------------- slow loop
     def decide(
@@ -437,25 +208,6 @@ class H3DecisionPolicy:
                 )
         if facts.get("route_available") is False:
             hard_block_reasons.append("no route available")
-        if self.quote_policy == "forbid" and facts.get("quote_valid") is False:
-            # Learned quote stance "forbid": a stale quote is a hard
-            # environment boundary, not merely a re-verification trigger.
-            hard_block_reasons.append("quote is not valid (quote policy: forbid)")
-        # slow_loop: an active escalation window downgrades EXECUTE to BLOCK.
-        if "slow_loop" in self.features and self.escalation_active:
-            hard_block_reasons.append(
-                "boundary pressure escalation is active (slow_loop)")
-        # feedback_replan: a verbatim retry of an already-rejected proposal
-        # (same action + same parameters) is rejected outright.
-        if "feedback_replan" in self.features:
-            for rejected in self._rejected_proposals:
-                if (rejected.get("action_id") == final_decision.get("action_id")
-                        and rejected.get("parameters") == params):
-                    hard_block_reasons.append(
-                        "identical proposal was already rejected by the "
-                        "simulator (feedback_replan: replan, do not retry "
-                        "unchanged)")
-                    break
         amount = params.get("amount")
         if isinstance(amount, (int, float)) and amount > facts.get(
             "balance", float("inf")
@@ -514,14 +266,6 @@ class H3DecisionPolicy:
         if intent is not None and (getattr(intent, "requires_clarification", False)
                                    or getattr(intent, "pending_resolution", None)):
             missing = (getattr(intent, "missing_required", None) or []) + (getattr(intent, "pending_resolution", None) or [])
-            # clarify_policy: budget exhausted -> BLOCK, not another RC.
-            if ("clarify_policy" in self.features
-                    and self._clarify_remaining <= 0):
-                return self._adjust(
-                    final_decision, "BLOCK",
-                    "clarification budget exhausted and the intent still has "
-                    "unresolved required fields: " + ", ".join(missing),
-                )
             return self._adjust(
                 final_decision, "REQUEST_CLARIFICATION",
                 "intent has unresolved required fields: " + ", ".join(missing),

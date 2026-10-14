@@ -1,11 +1,11 @@
 """Internal experiment runner for TAPay; use the root main.py entry point.
 
 Usage (real provider):
-    python src/run_experiment.py --input data/cases.jsonl --output results/<run> \
-        --config-llm config/config_llm.ini
+    python main.py --input data/cases.jsonl --output results/<run> \
+        --config-llm config/llm.ini
 
 Usage (offline replay validation, no API key needed):
-    python src/run_experiment.py --input data/cases.jsonl --output results/<run> --mock
+    python main.py --input data/cases.jsonl --output results/<run> --mock
 
 The output directory must not exist unless --resume is given.
 """
@@ -39,12 +39,12 @@ from scoring.rq2_metrics import per_case_metrics
 
 def get_args():
     parser = argparse.ArgumentParser(
-        description="Payment-adapted TalkHier baseline runner (B000)."
+        description="TAPay payment experiment runner."
     )
     parser.add_argument("--input", required=True, help="merged cases.jsonl path")
     parser.add_argument("--output", required=True, help="empty output directory")
     parser.add_argument("--config", default="config/config.ini")
-    parser.add_argument("--config-llm", default="config/config_llm.ini")
+    parser.add_argument("--config-llm", default="config/llm.ini")
     for flag in ("h1", "h2", "h3"):
         parser.add_argument(f"--{flag}", choices=["on", "off"], default="off")
     parser.add_argument("--limit", type=int, default=-1)
@@ -61,7 +61,7 @@ def get_args():
                         help="diagnostic mode: a simulated user answers "
                         "REQUEST_CLARIFICATION questions; records how many "
                         "rounds are needed to leave the clarification state. "
-                        "Standard B000 results (off) are the official baseline.")
+                        "Disabled by default for single-conversation evaluation.")
     parser.add_argument("--max-clarification-rounds", type=int, default=3)
     parser.add_argument("--release-policy", default=None,
                         choices=["on_first_engagement", "disabled"])

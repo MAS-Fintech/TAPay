@@ -36,56 +36,6 @@ _CATALOG_FIELDS = ("amount", "asset", "target_asset", "slippage")
 _PURCHASE_FIELDS = ("sku", "quantity", "payment_method")
 
 
-def successor_chain_length(case: PaymentCase) -> int:
-    """Number of pending successor-chain entries (v4: a list of deltas; v3: a
-    single full-state dict).  Each tool contact advances exactly one chain
-    entry, so draining a chain of length L takes L contacts after the first
-    query."""
-    succ = case.environment.get("successor_state")
-    if not succ:
-        return 0
-    return len(succ) if isinstance(succ, list) else 1
-
-
-def derive_contract_action(case: PaymentCase):
-    """VALIDATION-ONLY: (action_id, operation, params, timing_fields) derived
-    from the case's reviewed task contract.  Shared by the per-baseline replay
-    models; reads gold/reference fields invisible to the model at run time."""
-    contract = case.task_reference.get("requested_action_contract", {})
-    field_status = contract.get("field_status", {})
-    action_map = case.task_reference.get("runtime_action_id_map") or {}
-    # pick the runtime action whose catalog operation matches the contract
-    # (multi-action catalogs list several ids; the first need not match).
-    # v4 keeps the catalog at the environment top level; v3 nests it in
-    # initial_state.
-    catalog_ops = {
-        a.get("id"): a.get("operation")
-        for a in (
-            case.environment["initial_state"].get("action_catalog")
-            or case.environment.get("action_catalog", [])
-        )
-    }
-    action_id = next(
-        (rid for rid in action_map.values() if catalog_ops.get(rid) == contract.get("operation")),
-        next(iter(action_map.values()), None),
-    )
-    operation = contract.get("operation")
-    catalog_fields = (_PURCHASE_FIELDS if operation == "purchase"
-                      else _CATALOG_FIELDS)
-    params = {
-        f: contract[f]
-        for f in catalog_fields
-        if field_status.get(f) == "PRESENT_VALID" and contract.get(f) is not None
-    }
-    # Intent-level timing fields live at the proposal/decision level.
-    timing_fields = {
-        f: contract[f]
-        for f in ("time_window_seconds", "deadline_at")
-        if field_status.get(f) == "PRESENT_VALID" and contract.get(f) is not None
-    }
-    return action_id, contract.get("operation"), params, timing_fields
-
-
 def derive_supervisor_queues(legal_trajectory: List[str], layout: Optional[TeamLayout] = None):
     """Expand a normalized legal trajectory into per-supervisor routing queues.
 

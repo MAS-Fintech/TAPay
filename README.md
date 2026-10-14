@@ -72,4 +72,4 @@ This is a minimal source-and-data release, not the full experiment workspace. It
 
 No additional license is granted here for original TAPay additions or datasets; their reuse licensing is pending an explicit decision by the rights holder. Public repository access does not override the upstream noncommercial terms.
 
-`model/SOURCE_MANIFEST.json` records source/release hashes. Packaging changes relocate `src` to `model`, update code hashing to that path, add a public command wrapper, and translate code comments/docstrings into English. Internal h1/h2/h3 names are retained for code compatibility and mapped to public Agent names in the README.
+The model implementation is synchronized with the RQ1/RQ2 experiment snapshots as of October 14, 2026. `model/SOURCE_MANIFEST.json` records source/release hashes. Packaging changes relocate `src` to `model`, update code hashing to that path, add a public command wrapper, and translate code comments/docstrings into English. Internal h1/h2/h3 names are retained for code compatibility and mapped to public Agent names in the README.

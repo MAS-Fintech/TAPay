@@ -29,12 +29,7 @@ def parse_fault_spec(text: str) -> Dict[str, Any]:
         return {"parameter": param, "mode": "increase_pct",
                 "pct": float(mode[1:].rstrip("%"))}
     if mode.startswith("="):
-        raw = mode[1:]
-        try:
-            value: Any = float(raw)
-        except ValueError:
-            value = raw  # String-valued injection, e.g. asset:=BALX substitution.
-        return {"parameter": param, "mode": "set", "value": value}
+        return {"parameter": param, "mode": "set", "value": float(mode[1:])}
     raise ValueError(f"unknown fault mode in {text!r} (use *k, +p%, =v)")
 
 

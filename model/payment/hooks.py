@@ -1,10 +1,26 @@
-"""Control-agent hook protocols for TAPay component ablations.
+"""H1/H2/H3 ablation hook protocols.
 
-The backbone-only condition uses NoOp implementations. Enabled components
-provide structured intent, transaction-intent alignment and dynamic decision
-boundaries through the same interfaces. The runner owns hook timing,
-revision handling and final enforcement. Internal h1/h2/h3 names are retained
-for compatibility with existing experiment configuration identifiers.
+The baseline (B000) wires NoOp implementations at three fixed call points so
+that later method modules plug in without touching the skeleton:
+
+  * H1 结构化意图 -> ``IntentStructurer``: called once per case by the runner
+    after the visible conversation is fixed and before the team is built.
+    Its product is injected into the background (B) channel.  B000: returns
+    the raw conversation unchanged.
+
+  * H2 意图-交易对齐验证 -> ``AlignmentVerifier``: called by the runner right
+    after the Evaluation team returns to the Main Supervisor, with the
+    current intermediate output (proposal/final_decision) and the ledger
+    receipts.  Its evidence would travel the M/B/I channels.  B000: returns
+    None (no independent evidence).
+
+  * H3 动态边界与 HITL -> ``DecisionPolicy``: called by the runner when the
+    Main Supervisor produced a legal FINISH, with the final decision and the
+    ledger snapshot.  It may adjust the decision (execute/wait/clarify/
+    escalate).  B000: returns the decision unchanged.
+
+Any flag other than all-off raises NotImplementedError in the baseline build;
+this keeps B000 the only executable condition until the H modules land.
 """
 from __future__ import annotations
 
@@ -96,28 +112,10 @@ def condition_name(h1: bool, h2: bool, h3: bool) -> str:
     return "B" + ("1" if h1 else "0") + ("1" if h2 else "0") + ("1" if h3 else "0")
 
 
-_H3_POLICY_OVERRIDE_KEYS = {"risk_threshold", "risk_enter", "risk_exit",
-                            "min_hold_events", "pressure_threshold",
-                            "clarify_budget"}
-
-
-def build_hooks(h1: bool = False, h2: bool = False, h3: bool = False, llm=None,
-                h3_boundary: Optional[str] = None,
-                h3_features: Optional[set] = None,
-                h3_policy_overrides: Optional[Dict[str, Any]] = None) -> HookSet:
+def build_hooks(h1: bool = False, h2: bool = False, h3: bool = False, llm=None) -> HookSet:
     """Wire hooks for an ablation condition. H1/H2/H3 are all implemented
     (B000–B111 executable). Build hooks per case (modules carry per-case
-    state). H3's deterministic policy needs no LLM; H1/H2 do.
-
-    ``h3_boundary`` optionally points at a learned boundary artifact JSON
-    (see scripts/h3/learn_boundary.py); when omitted the H3 policy keeps its
-    default fixed-threshold behaviour exactly. ``h3_features`` names the
-    optional H3 sub-features (slow_loop / feedback_replan /
-    clarify_policy); default None = all off, behaviour unchanged.
-    ``h3_policy_overrides`` passes whitelisted constructor kwargs
-    (risk_enter/risk_exit/min_hold_events/pressure_threshold/...) to the H3
-    policy for RQ4 sensitivity sweeps; it cannot combine with a boundary
-    artifact and defaults to no behaviour change."""
+    state). H3's deterministic policy needs no LLM; H1/H2 do."""
     if (h1 or h2) and llm is None:
         raise ValueError("H1/H2 require an LLM for their module components")
     if h1:
@@ -135,21 +133,7 @@ def build_hooks(h1: bool = False, h2: bool = False, h3: bool = False, llm=None,
     if h3:
         from payment.h3.policy import H3DecisionPolicy
 
-        if h3_policy_overrides:
-            if h3_boundary:
-                raise ValueError(
-                    "h3_policy_overrides cannot combine with a learned "
-                    "boundary artifact; pick one parameter source")
-            unknown = set(h3_policy_overrides) - _H3_POLICY_OVERRIDE_KEYS
-            if unknown:
-                raise ValueError(
-                    f"unknown H3 policy override keys: {sorted(unknown)}")
-        h3_obj: DecisionPolicy = (
-            H3DecisionPolicy.from_boundary_file(h3_boundary,
-                                                features=h3_features)
-            if h3_boundary else H3DecisionPolicy(features=h3_features,
-                                                 **(h3_policy_overrides or {}))
-        )
+        h3_obj: DecisionPolicy = H3DecisionPolicy()
     else:
         h3_obj = NoOpDecisionPolicy()
     return HookSet(h1=h1_obj, h2=h2_obj, h3=h3_obj)

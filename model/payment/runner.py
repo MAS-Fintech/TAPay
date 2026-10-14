@@ -12,9 +12,6 @@ Flow per case:
      legal FINISH (B000: identity);
   6. only a legal Main-Supervisor FINISH yields a prediction; failures are
      classified and never rewritten into semantic labels.
-
-``baseline != "b000"`` delegates to the literature-baseline registry
-(``payment.baselines``) before any of the above; the B000 path is unchanged.
 """
 from __future__ import annotations
 
@@ -75,8 +72,6 @@ class CaseResult:
     h3_directives: List[str] = field(default_factory=list)
     h3_adjustment: Dict[str, Any] = field(default_factory=dict)
     h2_enforcement: Dict[str, Any] = field(default_factory=dict)
-    h3_zone_log: List[Dict[str, Any]] = field(default_factory=list)
-    fault_injection: Dict[str, Any] = field(default_factory=dict)
     model_call_audit: Dict[str, Any] = field(default_factory=dict)
 
     def prediction_record(self) -> Dict[str, Any]:
@@ -106,10 +101,6 @@ class CaseResult:
             record["h3_adjustment"] = self.h3_adjustment
         if self.h2_enforcement:
             record["h2_enforcement"] = self.h2_enforcement
-        if self.h3_zone_log:
-            record["h3_zone_log"] = self.h3_zone_log
-        if self.fault_injection:
-            record["fault_injection"] = self.fault_injection
         return record
 
 
@@ -134,20 +125,7 @@ def run_case(
     release_policy: str = "on_first_engagement",
     recursion_limit: int = 30,
     verbose: bool = False,
-    baseline: str = "b000",
-    fault_inject: Optional[Dict[str, Any]] = None,
 ) -> CaseResult:
-    if baseline != "b000":
-        from payment.baselines import get_baseline
-
-        return get_baseline(baseline).run_case(
-            case,
-            llm,
-            hooks,
-            release_policy=release_policy,
-            recursion_limit=recursion_limit,
-            verbose=verbose,
-        )
     started = time.time()
     from multiagent.call_audit import attach_call_audit
     llm, call_audit, instrumented = attach_call_audit(llm, hooks)
@@ -162,11 +140,9 @@ def run_case(
     evidence_history: List[Dict[str, Any]] = []
     seen_user_events = [0]
     seen_events = [0]
-    seen_receipts = [0]
     h3_directives: List[str] = []
     h3_adjustment: Dict[str, Any] = {}
     h2_enforcement: Dict[str, Any] = {}
-    fault_injection_record: Dict[str, Any] = {}
 
     prediction: Prediction
     try:
@@ -294,15 +270,6 @@ def run_case(
                     if directive:
                         h3_directives.append(directive)
                 seen_events[0] = len(ledger.state_transitions)
-                # feedback_replan: deliver each NEW rejected receipt exactly
-                # once (the policy additionally guards by receipt_id).
-                if hasattr(hooks.h3, "on_simulation_failure"):
-                    for receipt in ledger.receipts[seen_receipts[0]:]:
-                        if receipt.get("status") == "REJECTED":
-                            directive = hooks.h3.on_simulation_failure(receipt)
-                            if directive:
-                                h3_directives.append(directive)
-                    seen_receipts[0] = len(ledger.receipts)
 
         def refresh_final_evidence(decision):
             if (h2_enabled and decision.get("final_behavior") == "EXECUTE"
@@ -438,16 +405,6 @@ def run_case(
         else:
             final_output = result.get("intermediate_output")
             prediction = extract_prediction(final_output, ledger)
-            # RQ3 fault injection (experiment-only): distort one field of
-            # the final EXECUTE proposal before the final H2 re-validation
-            # and the H3 decide, so the interception chain can be observed.
-            if (fault_inject and prediction.failure is None
-                    and prediction.final_behavior == "EXECUTE"):
-                from payment.fault_injection import apply_fault_injection
-                new_params, inj = apply_fault_injection(
-                    prediction.parameters, fault_inject)
-                prediction.parameters = new_params
-                fault_injection_record.update(inj)
             # H3 hook point (B000: identity): the dynamic decision policy may
             # adjust the final decision against the current environment facts,
             # the H1 intent and the latest H2 evidence.  It never resurrects
@@ -465,16 +422,6 @@ def run_case(
                 # policy's own re-verification receipt binds to this version
                 if intent_holder["intent"] is not None:
                     ledger.intent_version = intent_holder["intent"].version
-                # clarify_policy: VoI-ordered clarification directive (None
-                # when the feature is off or the intent has < 2 unresolved
-                # required fields); RC finalizations spend the budget.
-                if hasattr(hooks.h3, "clarify_directive"):
-                    directive = hooks.h3.clarify_directive(intent_holder["intent"])
-                    if directive:
-                        h3_directives.append(directive)
-                if (prediction.final_behavior == "REQUEST_CLARIFICATION"
-                        and hasattr(hooks.h3, "note_clarification_round")):
-                    hooks.h3.note_clarification_round()
                 refresh_final_evidence(decision_view)
                 adjusted = hooks.h3.decide(
                     decision_view,
@@ -589,7 +536,6 @@ def run_case(
 
     raw = list(recorder.entries)
     normalized = normalize_trajectory(raw, team_layout())
-    h3_zone_log = list(getattr(hooks.h3, "zone_log", []) or [])
 
     return CaseResult(
         case_id=case.case_id,
@@ -609,8 +555,6 @@ def run_case(
         h3_directives=h3_directives,
         h3_adjustment=h3_adjustment,
         h2_enforcement=h2_enforcement,
-        h3_zone_log=h3_zone_log,
-        fault_injection=fault_injection_record,
         model_call_audit={"instrumented": instrumented, "calls": call_audit.records(),
             "structured_failures": list(call_audit.structured_failures),
             "scope": "LangChain model invocations; SDK-internal HTTP retries may be unobserved; missing usage is unknown"},

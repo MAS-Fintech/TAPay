@@ -76,18 +76,10 @@ def _deep_merge(base: Dict[str, Any], delta: Dict[str, Any]) -> Dict[str, Any]:
 
 
 class EnvironmentLedger:
-    def __init__(self, case: PaymentCase, release_policy: str = "on_first_engagement",
-                 risk_model: Optional[Dict[str, Any]] = None):
+    def __init__(self, case: PaymentCase, release_policy: str = "on_first_engagement"):
         if release_policy not in RELEASE_POLICIES:
             raise ValueError(f"unknown release_policy: {release_policy}")
         env = case.environment
-        # Constructor argument wins; when omitted, fall back to an optional
-        # ``risk_model`` block carried by the case environment itself (H3
-        # bandit variant files). Default None keeps the legacy deterministic
-        # simulator.
-        if risk_model is None:
-            risk_model = env.get("risk_model")
-        self.risk_model = risk_model
         self.release_policy = release_policy
         self.conversation_start_at = env.get("conversation_start_at")
         self.timezone = env.get("timezone")
@@ -840,34 +832,6 @@ class EnvironmentLedger:
         if not facts.get("route_available", True):
             failures.append("no route available")
 
-        # Optional stochastic risk band (H3 bandit probe, OFF by default):
-        # inside [band_lo, band_hi] the venue rejects the transaction with
-        # probability ramping linearly to p_max. The draw is deterministic per
-        # (case binding, state, action, params, salt) — reproducible runs, and
-        # an identical retry gets the same draw (consistent with the
-        # idempotency cache) while any changed parameter re-rolls.
-        risk_band_draw = None
-        if self.risk_model:
-            risk = facts.get("risk_score")
-            if isinstance(risk, (int, float)):
-                lo = float(self.risk_model.get("band_lo", 0.4))
-                hi = float(self.risk_model.get("band_hi", 0.8))
-                p_max = float(self.risk_model.get("p_max", 0.9))
-                p = min(max((risk - lo) / max(hi - lo, 1e-9), 0.0), 1.0) * p_max
-                if p > 0.0:
-                    draw = int(hashlib.sha256(
-                        f"risk-band|{self._binding}|{self.current_version}|{action_id}"
-                        f"|{self._canonical_params(parameters)}"
-                        f"|{self.risk_model.get('salt', 0)}".encode()
-                    ).hexdigest()[:12], 16) / float(0xFFFFFFFFFFFF)
-                    risk_band_draw = {"risk_score": risk, "risk_p": round(p, 4),
-                                      "risk_draw": round(draw, 4)}
-                    if draw < p:
-                        failures.append(
-                            f"risk-band rejection: venue rejected at risk "
-                            f"{risk} (draw {draw:.3f} < p {p:.3f})"
-                        )
-
         receipt = {
             "receipt_id": hashlib.sha256(
                 f"{self._binding}|{action_id}|{self._canonical_params(parameters)}"
@@ -892,8 +856,6 @@ class EnvironmentLedger:
                     fee_breakdown(action.get("operation"), parameters, facts))
         if self.intent_version is not None:
             receipt["intent_version"] = self.intent_version
-        if risk_band_draw is not None:
-            receipt["risk_band"] = risk_band_draw
         receipt.update(self.execution_context())
         self.receipts.append(receipt)
         self.tool_log.append({**base, "result": receipt["status"],

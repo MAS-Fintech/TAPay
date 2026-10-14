@@ -9,7 +9,7 @@ Pipeline (048-style staging adapted to payment intents):
 
 The structurer is invoked once per case before the team is built, and again
 whenever a user-role dynamic event is released mid-run (intent versioning:
-changes to amount, recipient or authorization create a new version and invalidate the previous one).
+扩大金额/对象/权限的修改生成新版本，旧版本作废).
 """
 from __future__ import annotations
 
@@ -80,8 +80,6 @@ Stage 3 — Commitments (graded, never dual-listed). Represent ordinary operatio
 - value/unit/direction when numeric (e.g. value=100, unit="RMB", direction="max"). The unit is mandatory whenever the value carries one (currency, seconds, percent, gwei) — never assume a unit conversion or compare different units without supported evidence;
 Each requirement appears in EXACTLY ONE commitment — never duplicate an item across levels. Strength follows USER MODALITY, never catalog representability. Known categories stay in their named category regardless of catalog parameters: min_output, total_fee and total_price are receipt-verifiable, amount_limit is parameter-verifiable, and deadline uses top-level timing fields. Only a requirement outside these supported representations (e.g. "must use a private MEV route" or "execute at that rate") belongs to other; if explicit and hard, preserve it as inviolable with exact evidence. Merely optional execution hints remain weak_preference. A stated gas cap ("gas under 10 gwei") is verifiable against facts.gas_price_gwei; its level follows its modality ("keep gas under X" = inviolable bound).
 List internal contradictions in conflicts. Set requires_clarification only when required information is genuinely missing/ambiguous/conflicting AND cannot be resolved from the environment snapshot below; write the exact clarification_question then.
-- When the user corrects themselves in a later turn ("actually ...", "instead", "scratch that", "改为", "换成"), the LATEST statement supersedes the earlier one: update the field to the new value with evidence from the later turn, and do NOT record a conflict or set requires_clarification because of it. "conflicts" is only for contradictions the user has NOT resolved.
-- Never set requires_clarification without writing a concrete clarification_question; an RC with no question to ask is a structuring error.
 
 Environment snapshot (action/asset catalogs, network and conversation clock only — environment facts such as balances, prices and risk are deliberately NOT shown here; the team reads those via tools):
 __ENVIRONMENT__

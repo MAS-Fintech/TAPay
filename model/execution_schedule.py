@@ -23,27 +23,18 @@ def balanced_tasks(tasks, seed):
 
 
 @contextmanager
-def provider_lease(config, *, mock=False, lock_root=None, lease_slot=0):
+def provider_lease(config, *, mock=False, lock_root=None):
     """Reject overlapping local CLIs sharing an endpoint; never log credentials.
 
     OS locks are released on process exit, including crashes. This coordinates
     these runners on this host, not arbitrary clients or remote machines.
-
-    ``lease_slot`` (operational only, not recorded in run identity): slot 0 is
-    the default global lease. Slots > 0 take a per-slot lease, allowing N
-    intentional parallel matrices on the same endpoint when the operator has
-    provisioned per-account capacity accordingly (e.g. two accounts via
-    api_keys_extra, each matrix capped at a safe worker count).
     """
     if mock:
         yield
         return
     sec = config['LLM']
     endpoint = (sec.get('base_url') or sec.get('endpoint') or 'default').rstrip('/').lower()
-    key_src = sec.get('provider', '') + ':' + endpoint
-    if lease_slot:
-        key_src += f"|slot{int(lease_slot)}"
-    key = hashlib.sha256(key_src.encode()).hexdigest()
+    key = hashlib.sha256((sec.get('provider', '') + ':' + endpoint).encode()).hexdigest()
     root = Path(lock_root) if lock_root else Path(tempfile.gettempdir())/'tapay-provider-leases'
     root.mkdir(parents=True, exist_ok=True)
     handle = (root/(key+'.lock')).open('a+b')

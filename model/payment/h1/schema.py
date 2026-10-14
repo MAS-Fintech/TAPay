@@ -385,11 +385,6 @@ def finalize_intent(
                 )
     if intent.conflicts:
         intent.requires_clarification = True
-        if not intent.clarification_question:
-            intent.clarification_question = (
-                "Please clarify the unresolved contradiction: "
-                + "; ".join(intent.conflicts)
-            )
     if intent.unresolved_hard_constraints:
         intent.requires_clarification = True
         intent.clarification_question = "Please clarify how to verify: " + "; ".join(intent.unresolved_hard_constraints)
