@@ -62,6 +62,34 @@ The runtime-ready diagnostic inputs retain mixed review status: 35/55 and 32/48 
 
 See [datasets/README.md](datasets/README.md) for provenance, splits, visibility boundaries and limitations. The 311/55/48 collections are not three mutually independent samples. In particular, use `--split all` for all 55 diagnostic cases.
 
+## Evaluation
+
+We evaluate the three decisions `EXECUTE`, `BLOCK`, and `REQUEST_CLARIFICATION` using the following metrics. Higher is better (↑), except for false execution rate (↓).
+
+| Metric | Definition |
+|---|---|
+| Accuracy ↑ | Fraction of evaluated cases whose final decision matches the reference label. |
+| Precision ↑ | Macro-average of per-class `TP / (TP + FP)`. |
+| Recall ↑ | Macro-average of per-class `TP / (TP + FN)`. |
+| F1 ↑ | Macro-average of per-class `2TP / (2TP + FP + FN)`, rather than the harmonic mean of macro-precision and macro-recall. |
+| TSR ↑ | Ordinary task success rate: success under the task reference, including the required decision, allowed actions, contract parameters, successful simulated receipt at the final state, and applicable budget checks. |
+| FER ↓ | Fraction of reference `BLOCK` or `REQUEST_CLARIFICATION` cases incorrectly predicted as `EXECUTE`. |
+
+Precision, recall, and F1 weight all three classes equally; a zero denominator contributes zero. The table below uses normally completed cases. Every case in these two 110-case sets has a TSR reference, so ordinary TSR uses the same normal-case denominator as Accuracy. TSR is distinct from strict TSR and contract-qualified cTSR; matching the decision alone does not establish task success.
+
+### Reported results
+
+TAPay (`B111`, all three modules enabled), from the audited Table 1 snapshot of October 26, 2026, using the original RQ2-based experiment runner. All values are percentages. Shopping metrics are calculated separately for each round and then reported as the equal-weight mean ± sample standard deviation (`ddof=1`); DeFi is a single round.
+
+| Dataset | Cases × rounds | Accuracy ↑ | Precision ↑ | Recall ↑ | F1 ↑ | TSR ↑ | FER ↓ |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| DeFi | 110 × 1 | 90.91 | 83.14 | 92.46 | 86.62 | 83.64 | 0.00 |
+| Shopping | 110 × 5 | 97.26 ± 1.59 | 95.34 ± 2.41 | 97.84 ± 1.26 | 96.35 ± 2.11 | 59.42 ± 4.49 | 0.00 ± 0.00 |
+
+Normal completions were 110/110 for DeFi and 547/550 for Shopping. Counting the three Shopping run failures as unsuccessful gives all-assigned Accuracy of **96.73 ± 1.89%** and TSR of **59.09 ± 4.45%**; DeFi is unchanged.
+
+These are historical LLM results, not mock scores. The expanded benchmark sets and their historical outputs are outside this minimal release. Shopping combines the original 48 cases with 62 preselected expansion cases; full human label review of the added 62 was pending in this snapshot. Both benchmarks have been used during development and are not independent held-out evaluations.
+
 ## Attribution and licensing
 
 TAPay adds structured intent, transaction–intent alignment, dynamic decision boundaries, an offline payment environment and evaluation utilities to an adapted hierarchical multi-agent implementation.
