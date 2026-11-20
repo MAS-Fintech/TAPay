@@ -1,0 +1,196 @@
+[
+  {
+    "file": "model/execution_schedule.py",
+    "source_sha256": "87cc3da12fd9d23f9410c66d17b4ba914068d85bf00aa69c1839e69065e12c94",
+    "release_sha256": "b90ddeb179f7cc3d97156c7e82d8466f6dec8d4b5edb14a4ed419c8356d32471"
+  },
+  {
+    "file": "model/experiment_integrity.py",
+    "source_sha256": "cae4ff4c373aaf14635161b6f11d46636bbcdfee632d4b9463a1ba3d403859f5",
+    "release_sha256": "d32d0ee4916c01d7efe405345111707e887d63fe72a69038681df394b3f85332"
+  },
+  {
+    "file": "model/multiagent/__init__.py",
+    "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "release_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "file": "model/multiagent/agent_team.py",
+    "source_sha256": "b5ceb6fcf2f2d14f470f76fb20fc62a1ceea0b6c63e486da84dca0cde459d923",
+    "release_sha256": "2ae88c7435b852ad5d87e2811e34aa4cf90d4e0ad4625efbfbdeda5baf0d53ff"
+  },
+  {
+    "file": "model/multiagent/call_audit.py",
+    "source_sha256": "5d8f6cde702ba6926919965e70b6305599b1f278bb83a168f4cdbe7e75c03e85",
+    "release_sha256": "23b84afb7736f2fe902a82ab01c99cb5e8573c238f52dd113d04c720088be27b"
+  },
+  {
+    "file": "model/multiagent/llm.py",
+    "source_sha256": "c4d95e3cecb6d882f2aa32f0859cde1392a3a01d387439997690bf173e1922c4",
+    "release_sha256": "4736f8670def6bfa2fa0a02f75f43df92554c6f68fda4969a851edaef9fb4adf"
+  },
+  {
+    "file": "model/multiagent/react_agent.py",
+    "source_sha256": "08dbd5974d535ee9bed4c069e424cfde5c721d44fc088c379352540d26d7d29f",
+    "release_sha256": "a75b1f88abf3a2aa3702f69da159c0e433f95bbfacdfeec0eda2610305e9f509"
+  },
+  {
+    "file": "model/multiagent/trajectory.py",
+    "source_sha256": "5e46cfa015d923269815c31e111acd14cb1b7069b161a185493b9246f2043dbc",
+    "release_sha256": "f18f63bc7c0caf712f78ef3f269e9ef0cefdcbe546d542a0d0722a5e6ebff831"
+  },
+  {
+    "file": "model/payment/__init__.py",
+    "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "release_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "file": "model/payment/baselines/__init__.py",
+    "source_sha256": "9911f5acefc4710013cdacf962f07915386c3ac90c5a27b1bd226046f9e01f2e",
+    "release_sha256": "7aef698bfbd48135e30a9e77a44206e0bbb2b5d2c88c4d13e08c8cf15aae028a"
+  },
+  {
+    "file": "model/payment/cases.py",
+    "source_sha256": "d11982ae7aa05dfa5dd99b9110d61c018337e32b3caa6741380840fe3af5046f",
+    "release_sha256": "462507dc3e9edf75ee754ee13308cb8a7de414f91da690e96a35d8b1ded47fd5"
+  },
+  {
+    "file": "model/payment/economics.py",
+    "source_sha256": "8d8ca29fdf47276f57143a1830d679e4dc4e8705092af80a92d6d1f0001b494d",
+    "release_sha256": "0a5119e16117d606f478c1a4a3c9f7c12c8e407916a59f8e06503c5be979fb94"
+  },
+  {
+    "file": "model/payment/environment.py",
+    "source_sha256": "2bb57d159163e1b2d7db06103d2a21b31309ac328cd4cdab389182d09614c855",
+    "release_sha256": "2bb57d159163e1b2d7db06103d2a21b31309ac328cd4cdab389182d09614c855"
+  },
+  {
+    "file": "model/payment/fault_injection.py",
+    "source_sha256": "48228ade90170b704b714ca70fa7c14a78eb8d0c0ff3885870458e6e2e15e524",
+    "release_sha256": "5eb75058c32b0815344c86cf23833f4bdb210acef86369e5cddac4177c37e922"
+  },
+  {
+    "file": "model/payment/sira/__init__.py",
+    "source_sha256": "985767106db4e3f2cdd5a337b289289914d95ad88c1515a6f944afb6968c7341",
+    "release_sha256": "5348cc5b2972bece0b10a9734d43e9dad0b6481573f8df28afec429c1dfcb78a",
+    "previous_release_file": "model/payment/h1/__init__.py"
+  },
+  {
+    "file": "model/payment/sira/grounding.py",
+    "source_sha256": "de7d042bf32ad7016f31058636a20c25a340d80fbf87a042226331c3f36f1bde",
+    "release_sha256": "8742541ede9e0f079ee1807c457893eb3acdccce9e7b3636165c410da8e97369",
+    "previous_release_file": "model/payment/h1/grounding.py"
+  },
+  {
+    "file": "model/payment/sira/payment_method.py",
+    "source_sha256": "fd81040391cce1986a241d916c0edba5b1f56ee6661ebbcffed1987ef3e95431",
+    "release_sha256": "f246728999c02d965076133db9a85b8cb85b7e1f67b43262be648a23f163d452",
+    "previous_release_file": "model/payment/h1/payment_method.py"
+  },
+  {
+    "file": "model/payment/sira/schema.py",
+    "source_sha256": "c0fcb9a90caf4c2cf69b357b7303a1c5575c283d9a0e19fe23dc027dcdae79a6",
+    "release_sha256": "fd34240b885d6a686d2ae195ae0f516d6218f4460747e30c6f0b5fca58569ac1",
+    "previous_release_file": "model/payment/h1/schema.py"
+  },
+  {
+    "file": "model/payment/sira/structurer.py",
+    "source_sha256": "570e8f794d97c4fe6b1dda915b58b582bf48a2fa36d8da8b682fcea1c387b564",
+    "release_sha256": "f154b6fc412830d91831bf9c85a5e4c4fe2f8b791968da4b342571e2ddaa84a2",
+    "previous_release_file": "model/payment/h1/structurer.py"
+  },
+  {
+    "file": "model/payment/tiaa/__init__.py",
+    "source_sha256": "cba28d5bcba983163964792d81a66f34b514ff2f08144ea1a29cb501518a7428",
+    "release_sha256": "af96209c457d60a9ed8b8aa0db3d924d1a4d33223449596a5807ad73d1e4cee0",
+    "previous_release_file": "model/payment/h2/__init__.py"
+  },
+  {
+    "file": "model/payment/tiaa/verifier.py",
+    "source_sha256": "42e42c42fc01f8743bcf9d7b19dc029867baee09c292a952429695ff7a5e5bf1",
+    "release_sha256": "5f351ad8dcecb64a0974ba939495d3d8777a71cd40edb607912888c11250ee14",
+    "previous_release_file": "model/payment/h2/verifier.py"
+  },
+  {
+    "file": "model/payment/dbda/__init__.py",
+    "source_sha256": "ffa7722a6426ba2f5a26dd173e168eb072a626c06a23ac9fdb23350d4a463c18",
+    "release_sha256": "22343bf85c3f0e499274d0e0d3ff1ac456a388a8337b9f2f854018e8de69188b",
+    "previous_release_file": "model/payment/h3/__init__.py"
+  },
+  {
+    "file": "model/payment/dbda/policy.py",
+    "source_sha256": "d77dea1651244b3bc447b6ae0a2a6103e57c0db7d4d984522dba32ba15a73d16",
+    "release_sha256": "7a3f78512df587f0d200466e6837f27dba95d48b855f5342499b3ddec96c4135",
+    "previous_release_file": "model/payment/h3/policy.py"
+  },
+  {
+    "file": "model/payment/hooks.py",
+    "source_sha256": "edbef350584f70db29b38a56a5250bf34ba16aea327952733acfb9f6f72ff2a9",
+    "release_sha256": "a04c33f3e1afc4088d656a7c1ecd26126a27ecd910dcf84abe05e5452e178b1e"
+  },
+  {
+    "file": "model/payment/mock_replay.py",
+    "source_sha256": "f6d9b973b26683c4a00d49e3e903fcac7cdd5cdcde6deeb16ec3bc3918a8efef",
+    "release_sha256": "45d141c4fff7d0211f71fdd5fd3d94cf6ae70cacab2e4212f36599e68fa93f06"
+  },
+  {
+    "file": "model/payment/prediction.py",
+    "source_sha256": "23ac62d75347657635ca9c3412ac23a7a6d6f7901a01fbd5e9c0fad95f6e3fd0",
+    "release_sha256": "c04927cb544dfcecc3bedc704c651eff235e38a022018ac73a2dd11d478d96ee"
+  },
+  {
+    "file": "model/payment/prompts.py",
+    "source_sha256": "3c4e7331280dd40695dc018b6ec4fff9265a2f17a33158f8fe915f12c0e61a9c",
+    "release_sha256": "3c4e7331280dd40695dc018b6ec4fff9265a2f17a33158f8fe915f12c0e61a9c"
+  },
+  {
+    "file": "model/payment/quantities.py",
+    "source_sha256": "73b25f126a2118ff84293d9ddd3da355334dca46d5af98b1972f2688db3e0434",
+    "release_sha256": "c44ef1510732ecf12ff4db534d979a0734da575dbce8493d27a97747e4fd7ae0"
+  },
+  {
+    "file": "model/payment/runner.py",
+    "source_sha256": "7c48288ae17d56d5028c6664d04f99651b72c334783bc3a3cf2011ac32355ff6",
+    "release_sha256": "9806036b3f860aef2b1dfa99696aa4041883ab05249450e89ddbd0a67dbce821"
+  },
+  {
+    "file": "model/payment/simulated_user.py",
+    "source_sha256": "88ac30c4f9e30b1713dccd6e72825446bbdd7626d8dbca5c3cd2d736de82f495",
+    "release_sha256": "a1fe09a429f0c1aa6cbdbc01e4b98dfd94b82b30bb32d7b968c311d22d58185f"
+  },
+  {
+    "file": "model/payment/tools.py",
+    "source_sha256": "fdcb44e92c8d74903fbef051a1e7875f8ab02f9138333cfed39cdb4cb94684dc",
+    "release_sha256": "d045973065ad98f7d885fce8c17446c74fa03fad3de6591c34149015cd0d783b"
+  },
+  {
+    "file": "model/payment/verification_contract.py",
+    "source_sha256": "4ebb93d3582e907b9694b05517b7cc1c810fb9d061db36cbef1a2e2fc6d28507",
+    "release_sha256": "4ebb93d3582e907b9694b05517b7cc1c810fb9d061db36cbef1a2e2fc6d28507"
+  },
+  {
+    "file": "model/run_experiment.py",
+    "source_sha256": "6b357868dfcfd4c09043bd1a4019d763bf4f80d852ae34746ca74ceb64df37e3",
+    "release_sha256": "c7f2cbeae78bca59ee009bc5ff162e50902c938b8c8588c82e0fadb499aabe2d"
+  },
+  {
+    "file": "model/scoring/__init__.py",
+    "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "release_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "file": "model/scoring/audit_contract.py",
+    "source_sha256": "cafb757f4dc99a736aeb985f774eaa194b91afa438a7e0ec2f77039a0419729e",
+    "release_sha256": "40632733bc61d6e0f00739448d350692a4a71b8b8d5887782fbefa218c9ffe8a"
+  },
+  {
+    "file": "model/scoring/report.py",
+    "source_sha256": "03f3d6164915a25a4c04665c5f1b1fc420fdadd914cbb3df086dde4ae519ed7f",
+    "release_sha256": "03f3d6164915a25a4c04665c5f1b1fc420fdadd914cbb3df086dde4ae519ed7f"
+  },
+  {
+    "file": "model/scoring/rq2_metrics.py",
+    "source_sha256": "d97e7282fa0577903acec02c529b4e648a943fc83f7bbe6c3e6f7e1a68544ef6",
+    "release_sha256": "d8a9f8880a95721cc1553a2090da174e5042e2fe4ff56a6ba5324fecd907881e"
+  }
+]
